@@ -4,7 +4,7 @@ on:
     inputs:
       mode:
         type: choice
-        options: [identity, post, engage]
+        options: [identity, test, post, engage]
         default: identity
       live:
         type: boolean
@@ -31,9 +31,14 @@ jobs:
           python-version: '3.12'
           cache: pip
       - run: pip install -r requirements.txt
+      - name: Regression tests
+        run: python -m unittest -v test_social_os.py
       - name: Identity
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'identity' }}
         run: python -c "from mastodon_api import Mastodon; m=Mastodon().me(); print('Authenticated Mastodon account:',m.get('acct'))"
+      - name: Test only
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'test' }}
+        run: echo 'Social OS tests passed'
       - name: Manual post
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'post' }}
         run: python post.py
