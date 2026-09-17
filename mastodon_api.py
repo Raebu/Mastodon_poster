@@ -19,7 +19,7 @@ class Mastodon:
  def tag(self,tag,limit=20):return self.req("GET",f"/api/v1/timelines/tag/{tag.lstrip('#')}",params={"limit":limit})
  def context(self,status_id):return self.req("GET",f"/api/v1/statuses/{status_id}/context")
  def search(self,q,limit=20,kind=None):
-  p={"q":q,"limit":limit,"resolve":"true"}
+  p={"q":q,"limit":limit}
   if kind:p["type"]=kind
   return self.req("GET","/api/v2/search",params=p)
  def relationships(self,ids):
