@@ -1,0 +1,46 @@
+name: Mastodon Social OS
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [identity, post, engage]
+        default: identity
+      live:
+        type: boolean
+        default: false
+  schedule:
+    - cron: '29 9 * * 2,4,6'
+    - cron: '53 14 * * 1,3,5'
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      MASTODON_BASE_URL: ${{ secrets.MASTODON_BASE_URL }}
+      MASTODON_ACCESS_TOKEN: ${{ secrets.MASTODON_ACCESS_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      SOCIAL_MEMORY_SHEET_ID: ${{ vars.SOCIAL_MEMORY_SHEET_ID || '1yIwJqlmgRbp1_o4MFCLHMSOOgaE3DYMd31eF43dF9bs' }}
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.live != true }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Identity
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'identity' }}
+        run: python -c "from mastodon_api import Mastodon; m=Mastodon().me(); print('Authenticated Mastodon account:',m.get('acct'))"
+      - name: Manual post
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'post' }}
+        run: python post.py
+      - name: Manual engagement
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'engage' }}
+        run: python agent.py
+      - name: Scheduled execution
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          if [ "$(date -u +%H)" -lt 12 ]; then python post.py; else python agent.py; fi
